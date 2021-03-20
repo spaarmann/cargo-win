@@ -27,23 +27,22 @@ fn run() -> ExitStatus {
     args.next();
     args.next();
 
-    let mut cargo_args = args.next().expect("Must provide subcommand to execute!");
-    for arg in args {
-        cargo_args.push_str(&format!(" \"{}\")", arg));
+    let cargo_args = args.collect::<Vec<_>>();
+
+    if cargo_args.len() == 0 {
+        panic!("Must provide cargo subcommand to execute!");
     }
 
     let target_dir = find_target_dir();
-    let win_path_to_current_dir = get_win_path_to_current_dir();
 
-    let status = Command::new("cmd.exe")
-        .current_dir("/mnt/c")
-        .args(&[
-            "/C",
-            &format!(
-                "pushd {} && set CARGO_TARGET_DIR={}&& cargo {}",
-                win_path_to_current_dir, target_dir, cargo_args
-            ),
-        ])
+    let status = Command::new("cargo.exe")
+        .env("WSLENV", {
+            let mut s = env::var("WSLENV").unwrap_or_else(|_| String::new());
+            s.push_str(":CARGO_TARGET_DIR/w");
+            s
+        })
+        .env("CARGO_TARGET_DIR", target_dir)
+        .args(&cargo_args)
         .status()
         .expect("Could not execute cargo command on Windows!`");
 
@@ -105,17 +104,4 @@ fn find_temp_dir() -> String {
             None
         }
     }
-}
-
-fn get_win_path_to_current_dir() -> String {
-    // Files within WSL distros can be accessed from Windows by using a path like
-    // `\\wsl$\<distro name>\<linux path>`.
-    // The distro name can be found via the `WSL_DISTRO_NAME` env variable.
-    let distro_name = env::var("WSL_DISTRO_NAME").expect("WSL_DISTRO_NAME not set!");
-    let current_dir = env::current_dir().expect("Could not get current directory!");
-
-    // This isn't nice, but it's probably good enough for the moment:
-    let current_dir = current_dir.to_string_lossy().replace("/", "\\");
-
-    format!("\\\\wsl$\\{}{}", distro_name, current_dir).to_string()
 }
