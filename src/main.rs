@@ -34,14 +34,28 @@ fn run() -> ExitStatus {
     }
 
     let target_dir = find_target_dir();
+    let rustup_toolchain = get_active_rustup_toolchain();
 
-    let status = Command::new("cargo.exe")
+    let mut command = Command::new("cargo.exe");
+
+    command
         .env("WSLENV", {
+            // This instructs WSL to pass the CARGO_TARGET_DIR and RUSTUP_TOOLCHAIN environment
+            // variables we set next on to Windows.
             let mut s = env::var("WSLENV").unwrap_or_else(|_| String::new());
             s.push_str(":CARGO_TARGET_DIR/w");
+            if rustup_toolchain.is_some() {
+                s.push_str(":RUSTUP_TOOLCHAIN/w");
+            }
             s
         })
-        .env("CARGO_TARGET_DIR", target_dir)
+        .env("CARGO_TARGET_DIR", target_dir);
+
+    if let Some(toolchain) = rustup_toolchain.as_ref() {
+        command.env("RUSTUP_TOOLCHAIN", toolchain);
+    }
+
+    let status = command
         .args(&cargo_args)
         .status()
         .expect("Could not execute cargo command on Windows!`");
@@ -104,4 +118,46 @@ fn find_temp_dir() -> String {
             None
         }
     }
+}
+
+fn get_active_rustup_toolchain() -> Option<String> {
+    let output = Command::new("rustup")
+        .args(&["show"])
+        .current_dir(".")
+        .output()
+        .ok()?;
+
+    let output =
+        String::from_utf8(output.stdout).expect("Did not get valid UTF-8 output from rustup!");
+
+    // Default host: x86_64-unknown-linux-gnu
+    let host_regex = regex::Regex::new("Default host: (.*)").unwrap();
+
+    let host = host_regex
+        .captures(&output)
+        .expect("Could not parse rustup output, host regex did not match!")
+        .get(1)
+        .expect("Could not parse rustup output, could not get host capture!")
+        .as_str();
+
+    // active toolchain
+    // ----------------
+    //
+    // nightly-x86_64-unknown-linux-gnu
+    let active_toolchain_regex =
+        regex::Regex::new(r"\nactive toolchain\n-+\n\n([a-zA-Z0-9\-_]*)\s").unwrap();
+    let active_toolchain = active_toolchain_regex
+        .captures(&output)
+        .expect("Could not parse rustup output, toolchain regex did not match!")
+        .get(1)
+        .expect("Could not parse rustup output, could not get toolchain capture!")
+        .as_str();
+
+    // This toolchain contains an OS-specific bit which should obviously be different for the
+    // windows version, so we cut it out, going from e.g. "nightly-x86_64-unknown-linux-gnu" to
+    // just "nightly" which rustup will accept as toolchain.
+    let mut toolchain = active_toolchain.replace(host, "");
+    toolchain = toolchain.trim_matches('-').to_string();
+
+    Some(toolchain)
 }
