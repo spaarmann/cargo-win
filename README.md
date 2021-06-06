@@ -25,6 +25,12 @@ $ cargo win run --release
 $ cargo win test
 ```
 
+`cargo-win` will also attempt to detect the current `rustup` toolchain in use and pass a
+more-or-less-equivalent `RUSTUP_TOOLCHAIN` environment variable to the Windows side. This cannot use
+the exact same toolchain: If `nightly-x86_64-unknown-linux-gnu` is in use on Linux, that cannot be
+used on Windows. Instead, `RUSTUP_TOOLCHAIN` will be set to just `nightly` on Windows. This does not
+guarantee that the exact same nightly version is used however.
+
 ## Installation
 
 Install using `cargo install`, either by cloning yourself and using `cargo install --path`
