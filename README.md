@@ -2,15 +2,14 @@
 
 Cargo subcommand to run `cargo` on Windows from within a WSL shell.
 
-This is a useful tool for a bit of a niche use-case. I prefer to write Rust
-from a Linux environment, but use Windows as daily driver for various other
-reasons. This usually works very well by just using the Windows Subsystem
-for Linux, but there is a major exception: Any graphical applications are
-currently not supported inside WSL.
+`cargo-win` is a small tool for a bit of a niche use-case: Developing Rust projects inside the
+Windows Subsystem for Linux, but needing to compile and/or run the project on Windows itself. This
+comes up for example if you prefer to work in a Linux environment but develop an application
+involving a GUI or other features currently not supported in WSL.
 
-As a workaround, using this tool, I can still develop and store such projects
-inside WSL, but then run them with a Windows version of `cargo`, `rustc`, etc.,
-all without ever leaving the WSL shell.
+To work around those limitations, using this tool you can develop and store such projects inside
+WSL, but then run them with a Windows version of `cargo`, `rustc`, etc., all without ever leaving
+the WSL shell.
 
 ## Usage
 
@@ -38,7 +37,7 @@ or by using `cargo install --git`. For the moment, no crates.io version of this 
 
 ## How it works
 
-It currently creates a target directory in `<temp folder>\cargo-win\<workspace-name>` for
+`cargo-win` currently creates a target directory in `<temp folder>\cargo-win\<workspace-name>` for
 any workspace from which it is executed, and then uses the Windows-WSL interopability features
 to execute the Windows `cargo` in the current working directory, but with a `CARGO_TARGET_DIR`
 override set to that path.
@@ -50,15 +49,17 @@ not leaving old directories around there forever, you'll have to clean it up you
 The subfolder in a temp folder is used instead of e.g. simply a `target-win` folder next to
 the `target` folder inside the workspace, because `rustc` unfortunately currently crashes
 if incremental compilation is on and the target folder is inside a WSL path.
-(https://github.com/rust-lang/rust/issues/66513)
+(https://github.com/rust-lang/rust/issues/49773)
 
 ## Issues & Feature Requests
 
-If you encounter any issues using this tool, or need any additional configuration options to
-make effective use of it (there are currently none at all), please feel free to open an issue
-(or a PR)! This currently does what I personally need it to do, but I would love to make it
-useful to others too.
+If you encounter any issues using this tool, or need any additional configuration options or
+features to make effective use of it, please feel free to open an issue (or a PR)!
 
 ## License
 
-This project is licensed under the MIT license, see LICENSE.md.
+Licensed under either
+- Apache License, Version 2.0 ([LICENSE-APACHE](./LICENSE-APACHE) or
+  https://www.apache.org/licenses/LICENSE-2.0.html), or
+- MIT License ([LICENSE-MIT](./LICENSE-MIT) or https://spdx.org/licenses/MIT.html)
+at your option.
